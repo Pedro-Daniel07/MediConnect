@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "mysql2": "^3.24.6",
+    "playwright": "^1.65.0"
+  }
+}
