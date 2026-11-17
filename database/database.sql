@@ -27,6 +27,14 @@ INSERT INTO roles (nombre, descripcion) VALUES
 -- =====================================================
 -- Tabla: usuarios
 -- =====================================================
+CREATE TABLE intentos_login (
+    clave CHAR(64) PRIMARY KEY,
+    fallos SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    inicio_ventana DATETIME(6) NOT NULL,
+    bloqueado_hasta DATETIME(6) NULL,
+    INDEX idx_intentos_limpieza (inicio_ventana, bloqueado_hasta)
+) ENGINE=InnoDB;
+
 CREATE TABLE usuarios (
     id INT PRIMARY KEY AUTO_INCREMENT,
     email VARCHAR(100) NOT NULL UNIQUE,

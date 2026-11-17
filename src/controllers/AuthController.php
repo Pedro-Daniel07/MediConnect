@@ -4,6 +4,7 @@
  */
 
 require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../models/IntentoLogin.php';
 require_once __DIR__ . '/../models/Usuario.php';
 require_once __DIR__ . '/../models/Paciente.php';
 
@@ -40,13 +41,39 @@ class AuthController {
             return;
         }
 
-        $usuario = $this->usuarioModel->buscarPorEmail($email);
-
-        if (!$usuario || !password_verify($password, $usuario['password'])) {
-            $error = 'Credenciales incorrectas';
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        $intentosLogin = new IntentoLogin();
+        $espera = $intentosLogin->tiempoEspera($email, $ip);
+        if ($espera > 0) {
+            http_response_code(429);
+            header('Retry-After: ' . $espera);
+            $error = "Demasiados intentos. Intenta de nuevo en {$espera} segundos.";
             require_once __DIR__ . '/../views/auth/login.php';
             return;
         }
+
+        $usuario = $this->usuarioModel->buscarPorEmail($email);
+
+        if (!$usuario || !password_verify($password, $usuario['password'])) {
+            $espera = $intentosLogin->registrarFallo($email, $ip);
+            if ($espera > 0) {
+                http_response_code(429);
+                header('Retry-After: ' . $espera);
+                $error = "Demasiados intentos. Intenta de nuevo en {$espera} segundos.";
+            } else {
+                $error = 'Credenciales incorrectas';
+            }
+            require_once __DIR__ . '/../views/auth/login.php';
+            return;
+        }
+
+        if (!session_regenerate_id(true)) {
+            $error = 'No se pudo iniciar sesión. Intenta de nuevo.';
+            require_once __DIR__ . '/../views/auth/login.php';
+            return;
+        }
+        $_SESSION['last_regeneration'] = time();
+        $intentosLogin->limpiar($email, $ip);
 
         // Iniciar sesión
         $_SESSION['usuario_id'] = $usuario['id'];

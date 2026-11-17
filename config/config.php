@@ -27,7 +27,8 @@ date_default_timezone_set('America/Bogota');
 // Configuración de sesiones seguras
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', 0); // Cambiar a 1 en producción con HTTPS
+$esHttps = filter_var($_SERVER['HTTPS'] ?? false, FILTER_VALIDATE_BOOLEAN);
+ini_set('session.cookie_secure', $esHttps ? '1' : '0');
 ini_set('session.cookie_samesite', 'Strict');
 
 // Iniciar sesión si no está activa
