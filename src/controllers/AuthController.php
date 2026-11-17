@@ -197,13 +197,25 @@ class AuthController {
      * Cerrar sesión
      */
     public function logout() {
-        // Validar CSRF y método POST
+        // Validar método POST y token CSRF
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verificar_csrf($_POST['csrf_token'] ?? '')) {
-            http_response_code(403);
-            exit('Token de seguridad inválido');
+            // Token inválido o método incorrecto: redirigir a login
+            redirigir('login');
         }
 
+        // Vaciar datos de sesión
+        $_SESSION = [];
+
+        // Borrar cookie de sesión
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 3600, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+        }
+
+        // Destruir sesión
         session_destroy();
+
+        // Redirigir a login
         redirigir('login');
     }
 
