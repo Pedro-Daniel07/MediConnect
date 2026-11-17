@@ -126,6 +126,7 @@ CREATE TABLE citas (
     hora_inicio TIME NOT NULL,
     hora_fin TIME NOT NULL,
     estado ENUM('pendiente', 'confirmada', 'completada', 'cancelada') DEFAULT 'pendiente',
+    hora_inicio_activa TIME GENERATED ALWAYS AS (CASE WHEN estado = 'cancelada' THEN NULL ELSE hora_inicio END) STORED,
     motivo_consulta TEXT,
     motivo_cancelacion TEXT,
     notas_medicas TEXT,
@@ -137,7 +138,7 @@ CREATE TABLE citas (
     INDEX idx_medico (medico_id),
     INDEX idx_fecha (fecha),
     INDEX idx_estado (estado),
-    UNIQUE KEY unique_cita (medico_id, fecha, hora_inicio)
+    UNIQUE KEY unique_cita (medico_id, fecha, hora_inicio_activa)
 ) ENGINE=InnoDB;
 
 -- =====================================================

@@ -36,56 +36,66 @@ class CitaController {
                 $cita_id = $_POST['cita_id'] ?? 0;
                 $motivo = trim($_POST['motivo'] ?? '');
                 $paciente = $this->pacienteModel->obtenerPorUsuarioId($_SESSION['usuario_id']);
-                $citaCancelada = $this->citaModel->obtenerPorId($cita_id, $paciente['id']);
+                $db = Database::getInstance()->getConnection();
 
-                if ($this->citaModel->cancelar($cita_id, $motivo, $paciente['id'])) {
-                    registrar_auditoria('CITA_CANCELADA', 'Citas', "Cita #$cita_id cancelada. Motivo: $motivo");
-
-                    // Búsqueda y reasignación inteligente en lista de espera
-                    if ($citaCancelada) {
-                        $db = Database::getInstance()->getConnection();
-                        $stmtEspera = $db->prepare("SELECT le.*, CONCAT(u.nombre, ' ', u.apellido) as paciente_nombre, u.id as usuario_id
-                                                   FROM lista_espera le
-                                                   INNER JOIN pacientes p ON le.paciente_id = p.id
-                                                   INNER JOIN usuarios u ON p.usuario_id = u.id
-                                                   WHERE le.estado = 'esperando'
-                                                     AND (le.medico_id = ? OR le.especialidad_id = (SELECT especialidad_id FROM medicos WHERE id = ?))
-                                                   ORDER BY CASE le.prioridad WHEN 'alta' THEN 1 WHEN 'media' THEN 2 ELSE 3 END, le.fecha_solicitud ASC LIMIT 1");
-                        $stmtEspera->execute([$citaCancelada['medico_id'], $citaCancelada['medico_id']]);
-                        $asignado = $stmtEspera->fetch();
-
-                        if ($asignado) {
-                            $stmtNewCita = $db->prepare("INSERT INTO citas (paciente_id, medico_id, fecha, hora_inicio, hora_fin, motivo_consulta, estado) VALUES (?, ?, ?, ?, ?, ?, 'confirmada')");
-                            $stmtNewCita->execute([
-                                $asignado['paciente_id'],
-                                $citaCancelada['medico_id'],
-                                $citaCancelada['fecha'],
-                                $citaCancelada['hora_inicio'],
-                                $citaCancelada['hora_fin'],
-                                'Cupo asignado automáticamente desde lista de espera: ' . $asignado['motivo']
-                            ]);
-                            $nuevaCitaId = $db->lastInsertId();
-
-                            $stmtUpd = $db->prepare("UPDATE lista_espera SET estado = 'asignado', cita_asignada_id = ? WHERE id = ?");
-                            $stmtUpd->execute([$nuevaCitaId, $asignado['id']]);
-
-                            $stmtNotif = $db->prepare("INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje) VALUES (?, 'cita', '¡Cupo Liberado Asignado!', ?)");
-                            $stmtNotif->execute([
-                                $asignado['usuario_id'],
-                                "Se ha liberado un cupo con {$citaCancelada['medico_nombre']} para el {$citaCancelada['fecha']} a las {$citaCancelada['hora_inicio']}. Tu cita ha sido confirmada automáticamente."
-                            ]);
-
-                            registrar_auditoria('LISTA_ESPERA_ASIGNADA', 'Lista de Espera', "Cupo #{$nuevaCitaId} asignado automáticamente a paciente {$asignado['paciente_nombre']} desde lista de espera.");
-
-                            $_SESSION['mensaje_exito'] = "Cita cancelada. El algoritmo inteligente asignó de inmediato el cupo liberado a {$asignado['paciente_nombre']} de la lista de espera prioritaria.";
-                        } else {
-                            $_SESSION['mensaje_exito'] = 'Cita cancelada exitosamente';
-                        }
-                    } else {
-                        $_SESSION['mensaje_exito'] = 'Cita cancelada exitosamente';
+                try {
+                    $db->beginTransaction();
+                    $citaCancelada = $this->citaModel->obtenerPorId($cita_id, $paciente['id']);
+                    if (!$citaCancelada || !$this->citaModel->cancelar($cita_id, $motivo, $paciente['id'])) {
+                        throw new RuntimeException('No se pudo cancelar la cita solicitada.');
                     }
-                } else {
-                    $_SESSION['mensaje_error'] = 'Error al cancelar la cita';
+
+                    $this->registrarAuditoriaTransaccional($db, 'CITA_CANCELADA', 'Citas', "Cita #$cita_id cancelada. Motivo: $motivo");
+
+                    // Buscar y reasignar el cupo liberado sin borrar la cita cancelada.
+                    $stmtEspera = $db->prepare("SELECT le.*, CONCAT(u.nombre, ' ', u.apellido) as paciente_nombre, u.id as usuario_id
+                                               FROM lista_espera le
+                                               INNER JOIN pacientes p ON le.paciente_id = p.id
+                                               INNER JOIN usuarios u ON p.usuario_id = u.id
+                                               WHERE le.estado = 'esperando'
+                                                 AND (le.medico_id = ? OR le.especialidad_id = (SELECT especialidad_id FROM medicos WHERE id = ?))
+                                               ORDER BY CASE le.prioridad WHEN 'alta' THEN 1 WHEN 'media' THEN 2 ELSE 3 END, le.fecha_solicitud ASC LIMIT 1
+                                               FOR UPDATE");
+                    $stmtEspera->execute([$citaCancelada['medico_id'], $citaCancelada['medico_id']]);
+                    $asignado = $stmtEspera->fetch();
+
+                    if ($asignado) {
+                        $stmtNewCita = $db->prepare("INSERT INTO citas (paciente_id, medico_id, fecha, hora_inicio, hora_fin, motivo_consulta, estado) VALUES (?, ?, ?, ?, ?, ?, 'confirmada')");
+                        $stmtNewCita->execute([
+                            $asignado['paciente_id'],
+                            $citaCancelada['medico_id'],
+                            $citaCancelada['fecha'],
+                            $citaCancelada['hora_inicio'],
+                            $citaCancelada['hora_fin'],
+                            'Cupo asignado automáticamente desde lista de espera: ' . $asignado['motivo']
+                        ]);
+                        $nuevaCitaId = $db->lastInsertId();
+
+                        $stmtUpd = $db->prepare("UPDATE lista_espera SET estado = 'asignado', cita_asignada_id = ? WHERE id = ? AND estado = 'esperando'");
+                        $stmtUpd->execute([$nuevaCitaId, $asignado['id']]);
+                        if ($stmtUpd->rowCount() !== 1) {
+                            throw new RuntimeException('No se pudo actualizar la lista de espera.');
+                        }
+
+                        $stmtNotif = $db->prepare("INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje) VALUES (?, 'cita', '¡Cupo Liberado Asignado!', ?)");
+                        $stmtNotif->execute([
+                            $asignado['usuario_id'],
+                            "Se ha liberado un cupo con {$citaCancelada['medico_nombre']} para el {$citaCancelada['fecha']} a las {$citaCancelada['hora_inicio']}. Tu cita ha sido confirmada automáticamente."
+                        ]);
+
+                        $this->registrarAuditoriaTransaccional($db, 'LISTA_ESPERA_ASIGNADA', 'Lista de Espera', "Cupo #{$nuevaCitaId} asignado automáticamente a paciente {$asignado['paciente_nombre']} desde lista de espera.");
+                    }
+
+                    $db->commit();
+                    $_SESSION['mensaje_exito'] = $asignado
+                        ? "Cita cancelada. El cupo liberado fue asignado a {$asignado['paciente_nombre']}."
+                        : 'Cita cancelada exitosamente';
+                } catch (Throwable $e) {
+                    if ($db->inTransaction()) {
+                        $db->rollBack();
+                    }
+                    error_log('Error al cancelar y reasignar cita: ' . $e->getMessage());
+                    $_SESSION['mensaje_error'] = 'No se pudo cancelar la cita. Inténtalo de nuevo.';
                 }
             }
             redirigir('mis-citas');
@@ -194,6 +204,21 @@ class CitaController {
         $medicos = $this->medicoModel->listar();
         $titulo = 'Agendar Cita';
         require_once __DIR__ . '/../views/citas/agendar.php';
+    }
+
+    /**
+     * Registrar auditoría en la misma transacción de citas
+     */
+    private function registrarAuditoriaTransaccional($db, $accion, $modulo, $descripcion) {
+        $stmt = $db->prepare("INSERT INTO auditoria_logs (usuario_id, accion, modulo, descripcion, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $_SESSION['usuario_id'] ?? null,
+            $accion,
+            $modulo,
+            $descripcion,
+            $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
+            substr($_SERVER['HTTP_USER_AGENT'] ?? 'CLI/Browser', 0, 255)
+        ]);
     }
 
     /**
