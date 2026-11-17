@@ -1,0 +1,26 @@
+# Configuración local
+config/database.local.php
+.env
+.env.local
+
+# Dependencias
+node_modules/
+vendor/
+
+# Logs
+*.log
+logs/
+storage/logs/
+
+# Capturas y temporales
+captures/
+tmp/
+temp/
+
+# IDE
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store
+Thumbs.db

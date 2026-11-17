@@ -191,7 +191,8 @@ class CitaController {
                 $this->mostrarFormularioAgendar($error);
             }
         } catch (Exception $e) {
-            $error = 'Error: ' . $e->getMessage();
+            error_log("Error al agendar cita: " . $e->getMessage());
+            $error = 'Error al agendar cita. Por favor intente más tarde.';
             $this->mostrarFormularioAgendar($error);
         }
     }

@@ -174,7 +174,8 @@ class MedicoController {
 
         } catch (Exception $e) {
             $db->rollBack();
-            $_SESSION['mensaje_error'] = 'Error al registrar atención: ' . $e->getMessage();
+            error_log("Error al registrar atención médica: " . $e->getMessage());
+            $_SESSION['mensaje_error'] = 'Error al registrar atención. Por favor intente más tarde.';
             redirigir('atender-cita&id=' . $cita_id);
         }
     }

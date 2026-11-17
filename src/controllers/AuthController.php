@@ -45,9 +45,14 @@ class AuthController {
         $intentosLogin = new IntentoLogin();
         $espera = $intentosLogin->tiempoEspera($email, $ip);
         if ($espera > 0) {
-            http_response_code(429);
-            header('Retry-After: ' . $espera);
-            $error = "Demasiados intentos. Intenta de nuevo en {$espera} segundos.";
+            if ($espera >= 3600) {
+                http_response_code(503);
+                $error = "Servicio no disponible, intenta más tarde.";
+            } else {
+                http_response_code(429);
+                header('Retry-After: ' . $espera);
+                $error = "Demasiados intentos. Intenta de nuevo en {$espera} segundos.";
+            }
             require_once __DIR__ . '/../views/auth/login.php';
             return;
         }
@@ -57,9 +62,14 @@ class AuthController {
         if (!$usuario || !password_verify($password, $usuario['password'])) {
             $espera = $intentosLogin->registrarFallo($email, $ip);
             if ($espera > 0) {
-                http_response_code(429);
-                header('Retry-After: ' . $espera);
-                $error = "Demasiados intentos. Intenta de nuevo en {$espera} segundos.";
+                if ($espera >= 3600) {
+                    http_response_code(503);
+                    $error = "Servicio no disponible, intenta más tarde.";
+                } else {
+                    http_response_code(429);
+                    header('Retry-After: ' . $espera);
+                    $error = "Demasiados intentos. Intenta de nuevo en {$espera} segundos.";
+                }
             } else {
                 $error = 'Credenciales incorrectas';
             }
@@ -170,7 +180,8 @@ class AuthController {
                 require_once __DIR__ . '/../views/auth/registro.php';
             }
         } catch (Exception $e) {
-            $error = 'Error en el registro: ' . $e->getMessage();
+            error_log("Error en registro de usuario: " . $e->getMessage());
+            $error = 'Error al registrar usuario. Por favor intente más tarde.';
             require_once __DIR__ . '/../views/auth/registro.php';
         }
     }

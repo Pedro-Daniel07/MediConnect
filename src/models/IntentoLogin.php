@@ -17,52 +17,61 @@ class IntentoLogin {
     }
 
     public function tiempoEspera($email, $ip) {
-        $this->db->exec(
-            'DELETE FROM intentos_login
-             WHERE inicio_ventana < DATE_SUB(NOW(6), INTERVAL 600 SECOND)
-               AND (bloqueado_hasta IS NULL OR bloqueado_hasta <= NOW(6))'
-        );
-        $stmt = $this->db->prepare(
-            'SELECT MAX(CEIL(TIMESTAMPDIFF(MICROSECOND, NOW(6), bloqueado_hasta) / 1000000))
-             FROM intentos_login
-             WHERE clave IN (?, ?) AND bloqueado_hasta > NOW(6)'
-        );
-        $stmt->execute($this->obtenerClaves($email, $ip));
-        return max(0, (int) $stmt->fetchColumn());
+        try {
+            $this->db->exec(
+                'DELETE FROM intentos_login
+                 WHERE inicio_ventana < DATE_SUB(NOW(6), INTERVAL 600 SECOND)
+                   AND (bloqueado_hasta IS NULL OR bloqueado_hasta <= NOW(6))'
+            );
+            $stmt = $this->db->prepare(
+                'SELECT MAX(CEIL(TIMESTAMPDIFF(MICROSECOND, NOW(6), bloqueado_hasta) / 1000000))
+                 FROM intentos_login
+                 WHERE clave IN (?, ?) AND bloqueado_hasta > NOW(6)'
+            );
+            $stmt->execute($this->obtenerClaves($email, $ip));
+            return max(0, (int) $stmt->fetchColumn());
+        } catch (Exception $e) {
+            error_log("Error al verificar tiempo de espera de login: " . $e->getMessage());
+            // Fallar cerrado: bloquear login si no se puede verificar intentos
+            return 3600;
+        }
     }
 
     public function registrarFallo($email, $ip) {
-        $claves = $this->obtenerClaves($email, $ip);
-        $sql = sprintf(
-            'INSERT INTO intentos_login (clave, fallos, inicio_ventana, bloqueado_hasta)
-             VALUES (?, 1, NOW(6), NULL)
-             ON DUPLICATE KEY UPDATE
-                 fallos = IF(bloqueado_hasta > NOW(6), fallos,
-                     IF(inicio_ventana < DATE_SUB(NOW(6), INTERVAL %d SECOND)
-                         OR bloqueado_hasta <= NOW(6), 1, fallos + 1)),
-                 inicio_ventana = IF(inicio_ventana < DATE_SUB(NOW(6), INTERVAL %d SECOND)
-                     OR bloqueado_hasta <= NOW(6), NOW(6), inicio_ventana),
-                 bloqueado_hasta = IF(bloqueado_hasta > NOW(6), bloqueado_hasta,
-                     IF(fallos >= %d, DATE_ADD(NOW(6), INTERVAL %d SECOND), NULL))',
-            self::VENTANA_SEGUNDOS,
-            self::VENTANA_SEGUNDOS,
-            self::MAX_FALLOS,
-            self::BLOQUEO_SEGUNDOS
-        );
-
-        $this->db->beginTransaction();
         try {
+            $claves = $this->obtenerClaves($email, $ip);
+            $sql = sprintf(
+                'INSERT INTO intentos_login (clave, fallos, inicio_ventana, bloqueado_hasta)
+                 VALUES (?, 1, NOW(6), NULL)
+                 ON DUPLICATE KEY UPDATE
+                     fallos = IF(bloqueado_hasta > NOW(6), fallos,
+                         IF(inicio_ventana < DATE_SUB(NOW(6), INTERVAL %d SECOND)
+                             OR bloqueado_hasta <= NOW(6), 1, fallos + 1)),
+                     inicio_ventana = IF(inicio_ventana < DATE_SUB(NOW(6), INTERVAL %d SECOND)
+                         OR bloqueado_hasta <= NOW(6), NOW(6), inicio_ventana),
+                     bloqueado_hasta = IF(bloqueado_hasta > NOW(6), bloqueado_hasta,
+                         IF(fallos >= %d, DATE_ADD(NOW(6), INTERVAL %d SECOND), NULL))',
+                self::VENTANA_SEGUNDOS,
+                self::VENTANA_SEGUNDOS,
+                self::MAX_FALLOS,
+                self::BLOQUEO_SEGUNDOS
+            );
+
+            $this->db->beginTransaction();
             $stmt = $this->db->prepare($sql);
             foreach ($claves as $clave) {
                 $stmt->execute([$clave]);
             }
             $this->db->commit();
+            return $this->tiempoEspera($email, $ip);
         } catch (Exception $e) {
-            $this->db->rollBack();
-            throw $e;
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log("Error al registrar fallo de login: " . $e->getMessage());
+            // Fallar cerrado
+            return 3600;
         }
-
-        return $this->tiempoEspera($email, $ip);
     }
 
     public function limpiar($email, $ip) {
