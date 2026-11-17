@@ -14,6 +14,21 @@ class PacienteController {
     }
 
     /**
+     * Obtener un paciente solo si el usuario actual tiene permiso para verlo
+     */
+    private function obtenerPacienteAutorizado($paciente_id = null) {
+        if ($paciente_id && (tiene_rol('medico') || tiene_rol('administrador'))) {
+            $paciente = $this->pacienteModel->obtenerPorId($paciente_id);
+            if (!$paciente || (tiene_rol('medico') && !$this->pacienteModel->tieneCitaConMedico($paciente['id'], $_SESSION['usuario_id']))) {
+                return null;
+            }
+            return $paciente;
+        }
+
+        return $this->pacienteModel->obtenerPorUsuarioId($_SESSION['usuario_id']);
+    }
+
+    /**
      * Ver historial clínico
      */
     public function historial() {
@@ -132,13 +147,7 @@ class PacienteController {
             return;
         }
 
-        // Si es médico o admin, puede ver el de un paciente por $_GET['id']
-        $paciente_id = $_GET['id'] ?? null;
-        if ($paciente_id && (tiene_rol('medico') || tiene_rol('administrador'))) {
-            $paciente = $this->pacienteModel->obtenerPorId($paciente_id);
-        } else {
-            $paciente = $this->pacienteModel->obtenerPorUsuarioId($_SESSION['usuario_id']);
-        }
+        $paciente = $this->obtenerPacienteAutorizado($_GET['id'] ?? null);
 
         if (!$paciente) {
             redirigir('dashboard');
@@ -160,12 +169,7 @@ class PacienteController {
             return;
         }
 
-        $paciente_id = $_GET['id'] ?? null;
-        if ($paciente_id && (tiene_rol('medico') || tiene_rol('administrador'))) {
-            $paciente = $this->pacienteModel->obtenerPorId($paciente_id);
-        } else {
-            $paciente = $this->pacienteModel->obtenerPorUsuarioId($_SESSION['usuario_id']);
-        }
+        $paciente = $this->obtenerPacienteAutorizado($_GET['id'] ?? null);
 
         if (!$paciente) {
             redirigir('dashboard');
@@ -203,12 +207,7 @@ class PacienteController {
 
         $db = Database::getInstance()->getConnection();
 
-        $paciente_id = $_GET['id'] ?? null;
-        if ($paciente_id && (tiene_rol('medico') || tiene_rol('administrador'))) {
-            $paciente = $this->pacienteModel->obtenerPorId($paciente_id);
-        } else {
-            $paciente = $this->pacienteModel->obtenerPorUsuarioId($_SESSION['usuario_id']);
-        }
+        $paciente = $this->obtenerPacienteAutorizado($_GET['id'] ?? null);
 
         if (!$paciente) {
             redirigir('dashboard');

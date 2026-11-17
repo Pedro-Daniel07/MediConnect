@@ -131,7 +131,7 @@ class Cita {
     /**
      * Obtener cita por ID
      */
-    public function obtenerPorId($id) {
+    public function obtenerPorId($id, $paciente_id = null) {
         $sql = "SELECT c.*,
                 CONCAT(um.nombre, ' ', um.apellido) as medico_nombre,
                 CONCAT(up.nombre, ' ', up.apellido) as paciente_nombre,
@@ -145,8 +145,14 @@ class Cita {
                 INNER JOIN usuarios up ON p.usuario_id = up.id
                 WHERE c.id = :id";
 
+        $params = [':id' => $id];
+        if ($paciente_id !== null) {
+            $sql .= " AND c.paciente_id = :paciente_id";
+            $params[':paciente_id'] = $paciente_id;
+        }
+
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':id' => $id]);
+        $stmt->execute($params);
         return $stmt->fetch();
     }
 
@@ -170,10 +176,23 @@ class Cita {
     }
 
     /**
-     * Cancelar cita
+     * Cancelar cita si pertenece al paciente indicado
      */
-    public function cancelar($id, $motivo) {
-        return $this->actualizarEstado($id, 'cancelada', $motivo);
+    public function cancelar($id, $motivo, $paciente_id = null) {
+        if ($paciente_id === null) {
+            return false;
+        }
+
+        $sql = "UPDATE citas SET estado = 'cancelada'";
+        $params = [':id' => $id, ':paciente_id' => $paciente_id];
+        if ($motivo) {
+            $sql .= ", motivo_cancelacion = :motivo";
+            $params[':motivo'] = $motivo;
+        }
+        $sql .= " WHERE id = :id AND paciente_id = :paciente_id";
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($params) && $stmt->rowCount() > 0;
     }
 
     /**

@@ -199,7 +199,7 @@ class MedicoController {
      * Ver historia de un paciente
      */
     public function verHistoria() {
-        if (!tiene_rol('medico')) {
+        if (!tiene_rol('medico') && !tiene_rol('administrador')) {
             redirigir('dashboard');
             return;
         }
@@ -210,13 +210,13 @@ class MedicoController {
         $pacienteModel = new Paciente();
 
         $paciente = $pacienteModel->obtenerPorId($paciente_id);
-        if (!$paciente) {
+        if (!$paciente || (tiene_rol('medico') && !$pacienteModel->tieneCitaConMedico($paciente['id'], $_SESSION['usuario_id']))) {
             $_SESSION['mensaje_error'] = 'Paciente no encontrado';
             redirigir('pacientes');
             return;
         }
 
-        $historias = $pacienteModel->obtenerHistoriaClinica($paciente_id, 50);
+        $historias = $pacienteModel->obtenerHistoriaClinica($paciente['id'], 50);
 
         $titulo = 'Historia Clínica - ' . $paciente['nombre'] . ' ' . $paciente['apellido'];
         require_once __DIR__ . '/../views/medico/historia-paciente.php';

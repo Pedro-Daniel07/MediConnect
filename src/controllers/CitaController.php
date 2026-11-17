@@ -35,10 +35,10 @@ class CitaController {
             } else {
                 $cita_id = $_POST['cita_id'] ?? 0;
                 $motivo = trim($_POST['motivo'] ?? '');
+                $paciente = $this->pacienteModel->obtenerPorUsuarioId($_SESSION['usuario_id']);
+                $citaCancelada = $this->citaModel->obtenerPorId($cita_id, $paciente['id']);
 
-                $citaCancelada = $this->citaModel->obtenerPorId($cita_id);
-
-                if ($this->citaModel->cancelar($cita_id, $motivo)) {
+                if ($this->citaModel->cancelar($cita_id, $motivo, $paciente['id'])) {
                     registrar_auditoria('CITA_CANCELADA', 'Citas', "Cita #$cita_id cancelada. Motivo: $motivo");
 
                     // Búsqueda y reasignación inteligente en lista de espera

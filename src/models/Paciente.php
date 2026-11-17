@@ -82,6 +82,22 @@ class Paciente {
     }
 
     /**
+     * Verificar si el médico ha tenido alguna cita con el paciente
+     */
+    public function tieneCitaConMedico($paciente_id, $medico_usuario_id) {
+        $sql = "SELECT 1 FROM citas c
+                INNER JOIN medicos m ON c.medico_id = m.id
+                WHERE c.paciente_id = :paciente_id AND m.usuario_id = :medico_usuario_id
+                LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':paciente_id' => $paciente_id,
+            ':medico_usuario_id' => $medico_usuario_id
+        ]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /**
      * Obtener historia clínica del paciente
      */
     public function obtenerHistoriaClinica($paciente_id, $limit = 10) {
