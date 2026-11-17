@@ -40,6 +40,11 @@ switch ($page) {
         break;
 
     case 'logout':
+        // Logout solo acepta POST
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            exit('Método no permitido');
+        }
         require_once __DIR__ . '/../src/controllers/AuthController.php';
         $controller = new AuthController();
         $controller->logout();

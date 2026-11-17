@@ -95,6 +95,7 @@
             <?php endif; ?>
 
             <form method="POST" action="index.php?page=login" style="display: flex; flex-direction: column; gap: var(--space-4);">
+                <input type="hidden" name="csrf_token" value="<?php echo obtener_csrf_token(); ?>">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label for="email" class="form-label required">Correo Electrónico</label>
                     <input type="email" id="email" name="email" class="form-input" value="<?php echo e($_POST['email'] ?? ''); ?>" required autofocus placeholder="usuario@mediconnect.com">

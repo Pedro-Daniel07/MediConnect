@@ -13,6 +13,7 @@
 
 <div class="dashboard-section">
     <form method="POST" action="index.php?page=orientador">
+        <input type="hidden" name="csrf_token" value="<?php echo obtener_csrf_token(); ?>">
         <h3 style="margin-bottom: 16px;">Selecciona tus síntomas:</h3>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">

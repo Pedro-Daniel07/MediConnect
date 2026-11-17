@@ -17,8 +17,14 @@ class NotificacionController {
 
         $db = Database::getInstance()->getConnection();
 
-        // Marcar como leídas si se recibe el parámetro
-        if (isset($_GET['marcar_leidas'])) {
+        // Marcar como leídas si se recibe el parámetro por POST con CSRF
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_leidas'])) {
+            // Validar CSRF
+            if (!verificar_csrf($_POST['csrf_token'] ?? '')) {
+                http_response_code(403);
+                exit('Token de seguridad inválido');
+            }
+
             $sql = "UPDATE notificaciones SET leida = 1
                     WHERE usuario_id = :usuario_id AND leida = 0";
             $stmt = $db->prepare($sql);

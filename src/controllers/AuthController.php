@@ -32,6 +32,13 @@ class AuthController {
      * Procesar inicio de sesión
      */
     private function procesarLogin() {
+        // Validar CSRF
+        if (!verificar_csrf($_POST['csrf_token'] ?? '')) {
+            $error = 'Token de seguridad inválido';
+            require_once __DIR__ . '/../views/auth/login.php';
+            return;
+        }
+
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
 
@@ -190,6 +197,12 @@ class AuthController {
      * Cerrar sesión
      */
     public function logout() {
+        // Validar CSRF y método POST
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verificar_csrf($_POST['csrf_token'] ?? '')) {
+            http_response_code(403);
+            exit('Token de seguridad inválido');
+        }
+
         session_destroy();
         redirigir('login');
     }
@@ -199,6 +212,13 @@ class AuthController {
      */
     public function recuperar() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Validar CSRF
+            if (!verificar_csrf($_POST['csrf_token'] ?? '')) {
+                $error = 'Token de seguridad inválido';
+                require_once __DIR__ . '/../views/auth/recuperar.php';
+                return;
+            }
+
             $email = trim($_POST['email'] ?? '');
 
             if (empty($email)) {

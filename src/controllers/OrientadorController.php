@@ -19,6 +19,14 @@ class OrientadorController {
         $sintomas_seleccionados = [];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Validar CSRF
+            if (!verificar_csrf($_POST['csrf_token'] ?? '')) {
+                $error = 'Token de seguridad inválido';
+                $titulo = 'Orientador de Síntomas';
+                require_once __DIR__ . '/../views/orientador/index.php';
+                return;
+            }
+
             $sintomas_seleccionados = $_POST['sintomas'] ?? [];
             $resultado = $this->evaluarSintomas($sintomas_seleccionados);
         }

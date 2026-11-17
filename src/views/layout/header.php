@@ -206,10 +206,13 @@
                             </li>
                             <hr>
                             <li>
-                                <a href="index.php?page=logout" style="color: var(--error);">
-                                    <svg class="icon icon-sm" aria-hidden="true" style="stroke: var(--error);"><use href="<?php echo asset('img/icons.svg#x'); ?>"></use></svg>
-                                    <span>Cerrar Sesión</span>
-                                </a>
+                                <form method="POST" action="index.php?page=logout" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="<?php echo obtener_csrf_token(); ?>">
+                                    <button type="submit" style="background: none; border: none; color: var(--error); cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 8px 12px; width: 100%; text-align: left;">
+                                        <svg class="icon icon-sm" aria-hidden="true" style="stroke: var(--error);"><use href="<?php echo asset('img/icons.svg#x'); ?>"></use></svg>
+                                        <span>Cerrar Sesión</span>
+                                    </button>
+                                </form>
                             </li>
                         </ul>
                     </div>
