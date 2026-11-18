@@ -50,8 +50,14 @@ Sistema completo de gestión médica desarrollado en PHP puro, MySQL y JavaScrip
 ### 1. Copiar el Proyecto
 
 ```bash
-# Copiar la carpeta completa a:
-C:\xampp\htdocs\ruthxd
+### 1. Copiar proyecto y configurar BD
+```bash
+cp config/database.example.php config/database.local.php
+# editar config/database.local.php con tus credenciales
+```
+
+### 2. Iniciar servidor
+php -S localhost:8000 -t public
 ```
 
 ### 2. Importar la Base de Datos
@@ -76,19 +82,22 @@ http://localhost/ruthxd/public/
 
 ### Administrador
 - **Email:** admin@mediconnect.com
-- **Contraseña:** Admin123!
+- **Contraseña:** password
 - **Acceso:** Gestión completa del sistema
 
 ### Médico
 - **Email:** dr.rodriguez@mediconnect.com
-- **Contraseña:** Admin123!
+- **Contraseña:** password
 - **Especialidad:** Medicina General
 
 ### Paciente
 - **Email:** paciente1@mediconnect.com
-- **Contraseña:** Admin123!
+- **Contraseña:** password
 
-**Nota:** Todos los usuarios de prueba usan la misma contraseña: `Admin123!`
+**Nota:** Todos los usuarios de prueba usan la misma contraseña: `password`
+
+## Acceso
+http://localhost:8000/index.php?page=login
 
 ## 📁 Estructura del Proyecto
 

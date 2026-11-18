@@ -6,7 +6,7 @@
 - Página de inicio elegante con logo MediConnect
 - Explicar los 3 roles: Paciente, Médico, Administrador
 - Mostrar credenciales de prueba en pantalla
-- **Login como Paciente:** paciente1@mediconnect.com / Admin123!
+- **Login como Paciente:** paciente1@mediconnect.com / password
 
 **Decir:**
 "Este es MediConnect, un sistema completo de gestión de salud. Tenemos 3 tipos de usuarios, cada uno con su propio panel. Vamos a empezar como paciente."
