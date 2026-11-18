@@ -17,6 +17,20 @@ captures/
 tmp/
 temp/
 
+# Playwright
+test-results/
+playwright-report/
+*.png
+
+# Claves
+*.key
+*.pem
+
+# Config local protegida
+config/database.local.php
+
+
+
 # IDE
 .vscode/
 .idea/
