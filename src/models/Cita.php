@@ -189,7 +189,8 @@ class Cita {
             $sql .= ", motivo_cancelacion = :motivo";
             $params[':motivo'] = $motivo;
         }
-        $sql .= " WHERE id = :id AND paciente_id = :paciente_id";
+        // Solo se cancelan citas pendientes o confirmadas; las completadas y las ya canceladas quedan intactas
+        $sql .= " WHERE id = :id AND paciente_id = :paciente_id AND estado IN ('pendiente', 'confirmada')";
 
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($params) && $stmt->rowCount() > 0;
