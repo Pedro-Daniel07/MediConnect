@@ -199,8 +199,7 @@ class AuthController {
     public function logout() {
         // Validar método POST y token CSRF
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verificar_csrf($_POST['csrf_token'] ?? '')) {
-            // Token inválido o método incorrecto: redirigir a login
-            redirigir('login');
+            redirigir('login', ['error' => 'csrf']);
         }
 
         // Vaciar datos de sesión

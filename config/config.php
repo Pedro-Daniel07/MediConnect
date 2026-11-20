@@ -80,8 +80,13 @@ function tiene_rol($rol) {
 /**
  * Redirigir a una página
  */
-function redirigir($pagina) {
-    header("Location: index.php?page=$pagina");
+function redirigir($pagina, $params = []) {
+    // shortcut: $pagina a veces trae "&id=N" incrustado; separar cuando se toque esa ruta
+    $query = 'page=' . $pagina;
+    if ($params) {
+        $query .= '&' . http_build_query($params);
+    }
+    header("Location: index.php?$query");
     exit;
 }
 

@@ -80,6 +80,7 @@
                 </p>
             </div>
 
+            <?php if (($_GET['error'] ?? '') === 'csrf') $error = 'Token de seguridad inválido'; ?>
             <?php if (isset($error)): ?>
                 <div class="alert alert-error" style="margin-bottom: var(--space-4);">
                     <svg class="icon icon-sm" aria-hidden="true"><use href="<?php echo asset('img/icons.svg#alert-triangle'); ?>"></use></svg>

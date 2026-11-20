@@ -21,8 +21,7 @@ class NotificacionController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['marcar_leidas'])) {
             // Validar CSRF
             if (!verificar_csrf($_POST['csrf_token'] ?? '')) {
-                http_response_code(403);
-                exit('Token de seguridad inválido');
+                redirigir('notificaciones', ['error' => 'csrf']);
             }
 
             $sql = "UPDATE notificaciones SET leida = 1

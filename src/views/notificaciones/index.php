@@ -5,6 +5,10 @@
     <p>Mensajes y recordatorios del sistema</p>
 </div>
 
+<?php if (($_GET['error'] ?? '') === 'csrf'): ?>
+    <div class="alert alert-error">Token de seguridad inválido</div>
+<?php endif; ?>
+
 <?php
 $no_leidas = array_filter($notificaciones, fn($n) => !$n['leida']);
 $leidas = array_filter($notificaciones, fn($n) => $n['leida']);

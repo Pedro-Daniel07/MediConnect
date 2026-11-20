@@ -5,6 +5,10 @@
     <p>Evaluación preliminar de síntomas</p>
 </div>
 
+<?php if (!empty($error)): ?>
+    <div class="alert alert-error"><?php echo e($error); ?></div>
+<?php endif; ?>
+
 <div class="alert alert-warning" style="border-left: 4px solid #fbbf24;">
     <strong>⚠️ AVISO IMPORTANTE:</strong> Este orientador proporciona información general únicamente.
     <strong>NO reemplaza una consulta médica profesional.</strong> Ante cualquier síntoma,

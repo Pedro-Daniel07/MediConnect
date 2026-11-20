@@ -540,7 +540,16 @@ function executeCommand(action) {
         toggleTheme();
     } else if (action === 'logout') {
         if (confirm('¿Estás seguro de cerrar sesión?')) {
-            window.location.href = 'index.php?page=logout';
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'index.php?page=logout';
+            const token = document.createElement('input');
+            token.type = 'hidden';
+            token.name = 'csrf_token';
+            token.value = document.querySelector('meta[name="csrf-token"]')?.content || '';
+            form.appendChild(token);
+            document.body.appendChild(form);
+            form.submit();
         }
     } else if (action.startsWith('nav:')) {
         window.location.href = action.substring(4);
