@@ -1,6 +1,12 @@
 {
+  "name": "mediconnect-tests",
+  "version": "1.0.0",
+  "private": true,
   "devDependencies": {
-    "mysql2": "^3.24.6",
-    "playwright": "^1.65.0"
+    "@playwright/test": "^1.55.1",
+    "mysql2": "^3.24.6"
+  },
+  "scripts": {
+    "test": "playwright test"
   }
 }
