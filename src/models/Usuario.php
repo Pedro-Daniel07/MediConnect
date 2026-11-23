@@ -28,7 +28,8 @@ class Usuario {
             ':apellido' => $datos['apellido'],
             ':documento' => $datos['documento'],
             ':telefono' => $datos['telefono'] ?? null,
-            ':fecha_nacimiento' => $datos['fecha_nacimiento'] ?? null,
+            // '' no es NULL y MySQL rechaza la cadena vacía en una columna DATE
+            ':fecha_nacimiento' => !empty($datos['fecha_nacimiento']) ? $datos['fecha_nacimiento'] : null,
             ':direccion' => $datos['direccion'] ?? null,
             ':genero' => $datos['genero'] ?? 'Otro'
         ]);
