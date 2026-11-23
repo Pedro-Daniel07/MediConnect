@@ -1152,6 +1152,7 @@ img {
 }
 
 .horario-item {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1174,6 +1175,8 @@ img {
 
 .horario-item input {
     position: absolute;
+    top: 0;
+    left: 0;
     width: 1px;
     height: 1px;
     opacity: 0;
